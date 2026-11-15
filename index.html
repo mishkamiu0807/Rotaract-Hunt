@@ -15,7 +15,7 @@ button{background:var(--acc);color:#000;font-weight:bold;cursor:pointer;box-shad
 .blur{filter:blur(9px);max-width:100%;border:3px solid var(--ink)}
 </style></head><body>
 <h1>👾 TREASURE HUNT: HOST CONSOLE</h1>
-<div class="box"><div class="row"><b>Group:</b><select id="sel"></select><button class="g" onclick="dash()">All progress</button><button class="g" onclick="allh()">All hints</button></div></div>
+<div class="box"><div class="row"><b>Group:</b><select id="sel"></select><button class="g" onclick="dash()">All progress</button><button class="g" onclick="allh()">All hints</button><button onclick="newgame()">🔄 New game</button></div></div>
 <div id="main"></div>
 <div id="grp"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
@@ -76,6 +76,7 @@ h+=`<div class="box">🏁 Final-round finish order: ${S.g.map((g,i)=>[i+1,g.t[9]
 const base=()=>{let u="";try{u=localStorage.getItem("hurl")||""}catch(e){}return(u||location.href).split("#")[0]};
 function lif(g){const n=g.l??2;if(g.p<2&&!g.el)return"";return`<div class="box"><b>LIFELINES</b> ${g.el?"💀 ELIMINATED":"❤️".repeat(n)+"🖤".repeat(2-n)} <div class="row">${!g.el&&g.p<10?`<button onclick="ul()">Use lifeline</button>`:""}<button class="g" onclick="ud()">↩ undo</button></div></div>`}
 function code(g,p){let x=Math.imul(g*131+p*17+7,2654435761)>>>0;x^=x>>>13;x=Math.imul(x,1274126177)>>>0;return String(1000+x%9000)}
+function newgame(){if(!confirm("Start a NEW game? This clears all groups, names, progress, hearts and the photo on this phone."))return;if(!confirm("Really erase everything and start from scratch?"))return;try{localStorage.removeItem("hunt");localStorage.removeItem("hphoto")}catch(e){}location.hash="";location.reload()}
 function ul(){if(!confirm("Use a lifeline for Group "+(cur+1)+"? Using both eliminates the group."))return;const g=S.g[cur];g.l=(g.l??2)-1;if(g.l<=0){g.l=0;g.el=true;g.rel=false}save();view()}
 function ud(){const g=S.g[cur];g.l=Math.min(2,(g.l??2)+1);g.el=false;save();view()}
 function setu(v){try{localStorage.setItem("hurl",v.trim())}catch(e){}joinqr()}
@@ -86,7 +87,7 @@ const k="pl"+g,gi=g-1;let P;try{P=JSON.parse(localStorage.getItem(k))}catch(e){}
 const sv=()=>{try{localStorage.setItem(k,JSON.stringify(P))}catch(e){}};
 P.n=P.n||0;sv();
 window.pa=()=>{P.av=(P.av+1)%8;sv();r()};window.pm=()=>{const v=$("pn").value.trim();if(v){P.mem.push(v);sv();r()}};window.pd=i=>{P.mem.splice(i,1);sv();r()};window.pk=()=>{const v=$("pcode").value.trim();if(P.n<10&&v===code(g,P.n)){P.n++;sv();r()}else{$("pe").textContent="❌ Wrong code. Check with your host."}};
-function r(){$("main").innerHTML=`<div class="box"><span class="av">${AV[P.av]}</span> <b>GROUP ${g}</b> <button class="g" onclick="pa()">change avatar</button><br>Teammates: <input id="pn" placeholder="Name" size="12"> <button onclick="pm()">+ add</button><div>${P.mem.map((m,i)=>`<span class="pill" onclick="pd(${i})">${AV[(i+P.av)%8]} ${m} ✕</span> `).join("")}</div></div>`+(P.n<10?`<div class="box"><b>🔑 Next hint code</b><br><input id="pcode" inputmode="numeric" maxlength="4" size="6" placeholder="4 digits"> <button onclick="pk()">Unlock</button> <span id="pe"></span></div>`:"<div class=\"box\">🏁 All hints done!</div>")+(P.n?Array.from({length:P.n},(_,i)=>i).reverse().map(p=>{const x=hint(gi,p);return `<div class="box"><b>Stage ${x.stage}/5 · ${x.kind} hint</b><div class="hint">${x.txt}</div></div>`}).join(""):`<div class="box">⏳ No hints yet. When your host releases a hint, they will read out a 4-digit code.</div>`)}
+function r(){$("main").innerHTML=`<div class="box"><span class="av">${AV[P.av]}</span> <b>GROUP ${g}</b> <button class="g" onclick="pa()">change avatar</button> <button class="g" onclick="if(confirm('Clear your team profile and unlocked hints?')){localStorage.removeItem('pl${g}');location.reload()}">Reset</button><br>Teammates: <input id="pn" placeholder="Name" size="12"> <button onclick="pm()">+ add</button><div>${P.mem.map((m,i)=>`<span class="pill" onclick="pd(${i})">${AV[(i+P.av)%8]} ${m} ✕</span> `).join("")}</div></div>`+(P.n<10?`<div class="box"><b>🔑 Next hint code</b><br><input id="pcode" inputmode="numeric" maxlength="4" size="6" placeholder="4 digits"> <button onclick="pk()">Unlock</button> <span id="pe"></span></div>`:"<div class=\"box\">🏁 All hints done!</div>")+(P.n?Array.from({length:P.n},(_,i)=>i).reverse().map(p=>{const x=hint(gi,p);return `<div class="box"><b>Stage ${x.stage}/5 · ${x.kind} hint</b><div class="hint">${x.txt}</div></div>`}).join(""):`<div class="box">⏳ No hints yet. When your host releases a hint, they will read out a 4-digit code.</div>`)}
 r()}
 const m=location.hash.match(/^#g([1-5])(?:-h(\d+))?$/);
 if(m)player(+m[1],m[2]!=null?+m[2]:null);else view();
