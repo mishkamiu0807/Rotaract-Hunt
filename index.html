@@ -56,10 +56,10 @@ Teammates: <input id="m" placeholder="Name" size="12"><button onclick="addm()">+
 h+=lif(g);if(g.el)h+="<div class='box'><h1>💀 ELIMINATED</h1>Both lifelines used up.</div>";else if(g.p>=10)h+=`<div class="box"><h1>🏆 FINISHED!</h1>${tl(g)}</div>`;
 else{const x=hint(cur,g.p);
 h+=`<div class="box"><b>Stage ${x.stage}/5: ${x.e.n}</b> <span class="pill">${x.kind} hint</span><br><small>Place: ${x.e.loc}</small><div class="hint">${x.txt}</div>
-${g.rel?`<label><input type="checkbox" ${LINK?"checked":""} onchange="LINK=this.checked;view()"> QR opens the group’s app (untick = plain text)</label><div id="qr"></div><div class="row"><button onclick="grp()">📱 Show group screen</button><button class="ok" onclick="clr()">✅ Hint solved</button></div>`
+${g.rel?`<div style="font-size:42px;text-align:center;letter-spacing:8px;background:#000;padding:8px;margin:8px 0">🔑 ${code(cur+1,g.p)}</div><small>Read this code out to Group ${cur+1}. They type it into their profile page.</small><div class="row"><button onclick="grp()">📱 Show group screen</button><button class="ok" onclick="clr()">✅ Hint solved</button></div>`
 :`<button onclick="rel()">🚀 Release this hint</button>`}
 ${x.e.photo&&g.p%2?`<br><label>Blurred photo (pick the group pic): <input type="file" accept="image/*" onchange="pic(this)"></label>`:""}</div>`+`<div class="box">${tl(g)}</div>`}
-$("main").innerHTML=h;if(g.rel&&g.p<10)drawqr(LINK?base()+"#g"+(cur+1)+"-h"+g.p:hint(cur,g.p).txt)}
+$("main").innerHTML=h}
 function tl(g){return order(cur).map((k,i)=>{const a=g.p>i*2,b=g.p>i*2+1;return`<div class="stg"><div class="sq ${a?'on':''}"></div><div class="sq ${b?'on':''}"></div></div> ${b?"Stage "+(i+1)+" complete":(a?"Hint 1 done":"…")} · ${EV[k].n}<br>`}).join("")}
 function drawqr(t,id){id=id||"qr";try{qrcode.stringToBytes=qrcode.stringToBytesFuncs["UTF-8"];const q=qrcode(0,"L");q.addData(t);q.make();$(id).innerHTML=q.createSvgTag(4,2)}catch(e){$(id).textContent="QR library not loaded (needs internet once). Use the group screen instead."}}
 function addm(){const v=$("m").value.trim();if(v){S.g[cur].mem.push(v);save();view()}}
@@ -75,6 +75,7 @@ h+=`<div class="box"><b>Group ${i+1}</b> ${AV[g.av]} ${g.el?"💀 ELIMINATED":g.
 h+=`<div class="box">🏁 Final-round finish order: ${S.g.map((g,i)=>[i+1,g.t[9]]).filter(a=>a[1]).sort((a,b)=>a[1]-b[1]).map(a=>"Group "+a[0]).join(" → ")||"none yet"}<br><button class="g" onclick="if(confirm('Reset everything?')){localStorage.clear();location.reload()}">Reset all</button></div>`;$("main").innerHTML=h}
 const base=()=>{let u="";try{u=localStorage.getItem("hurl")||""}catch(e){}return(u||location.href).split("#")[0]};
 function lif(g){const n=g.l??2;if(g.p<2&&!g.el)return"";return`<div class="box"><b>LIFELINES</b> ${g.el?"💀 ELIMINATED":"❤️".repeat(n)+"🖤".repeat(2-n)} <div class="row">${!g.el&&g.p<10?`<button onclick="ul()">Use lifeline</button>`:""}<button class="g" onclick="ud()">↩ undo</button></div></div>`}
+function code(g,p){let x=Math.imul(g*131+p*17+7,2654435761)>>>0;x^=x>>>13;x=Math.imul(x,1274126177)>>>0;return String(1000+x%9000)}
 function ul(){if(!confirm("Use a lifeline for Group "+(cur+1)+"? Using both eliminates the group."))return;const g=S.g[cur];g.l=(g.l??2)-1;if(g.l<=0){g.l=0;g.el=true;g.rel=false}save();view()}
 function ud(){const g=S.g[cur];g.l=Math.min(2,(g.l??2)+1);g.el=false;save();view()}
 function setu(v){try{localStorage.setItem("hurl",v.trim())}catch(e){}joinqr()}
@@ -83,9 +84,9 @@ function joinqr(){const u=base()+"#g"+(cur+1);$("jq").innerHTML='<div id="jqr"><
 function player(g,h){document.querySelector(".box").style.display="none";document.querySelector("h1").textContent="👾 TEAM PROFILE";
 const k="pl"+g,gi=g-1;let P;try{P=JSON.parse(localStorage.getItem(k))}catch(e){}P=P||{mem:[],av:0,u:[]};
 const sv=()=>{try{localStorage.setItem(k,JSON.stringify(P))}catch(e){}};
-if(h!=null&&h<10&&!P.u.includes(h))P.u.push(h);sv();
-window.pa=()=>{P.av=(P.av+1)%8;sv();r()};window.pm=()=>{const v=$("pn").value.trim();if(v){P.mem.push(v);sv();r()}};window.pd=i=>{P.mem.splice(i,1);sv();r()};
-function r(){$("main").innerHTML=`<div class="box"><span class="av">${AV[P.av]}</span> <b>GROUP ${g}</b> <button class="g" onclick="pa()">change avatar</button><br>Teammates: <input id="pn" placeholder="Name" size="12"> <button onclick="pm()">+ add</button><div>${P.mem.map((m,i)=>`<span class="pill" onclick="pd(${i})">${AV[(i+P.av)%8]} ${m} ✕</span> `).join("")}</div></div>`+(P.u.length?Array.from({length:Math.max(...P.u)+1},(_,i)=>i).reverse().map(p=>{const x=hint(gi,p);return `<div class="box"><b>Stage ${x.stage}/5 · ${x.kind} hint</b><div class="hint">${x.txt}</div></div>`}).join(""):`<div class="box">⏳ Waiting for your host to release a hint. Scan the hint QR they show you.</div>`)}
+P.n=P.n||0;sv();
+window.pa=()=>{P.av=(P.av+1)%8;sv();r()};window.pm=()=>{const v=$("pn").value.trim();if(v){P.mem.push(v);sv();r()}};window.pd=i=>{P.mem.splice(i,1);sv();r()};window.pk=()=>{const v=$("pcode").value.trim();if(P.n<10&&v===code(g,P.n)){P.n++;sv();r()}else{$("pe").textContent="❌ Wrong code. Check with your host."}};
+function r(){$("main").innerHTML=`<div class="box"><span class="av">${AV[P.av]}</span> <b>GROUP ${g}</b> <button class="g" onclick="pa()">change avatar</button><br>Teammates: <input id="pn" placeholder="Name" size="12"> <button onclick="pm()">+ add</button><div>${P.mem.map((m,i)=>`<span class="pill" onclick="pd(${i})">${AV[(i+P.av)%8]} ${m} ✕</span> `).join("")}</div></div>`+(P.n<10?`<div class="box"><b>🔑 Next hint code</b><br><input id="pcode" inputmode="numeric" maxlength="4" size="6" placeholder="4 digits"> <button onclick="pk()">Unlock</button> <span id="pe"></span></div>`:"<div class=\"box\">🏁 All hints done!</div>")+(P.n?Array.from({length:P.n},(_,i)=>i).reverse().map(p=>{const x=hint(gi,p);return `<div class="box"><b>Stage ${x.stage}/5 · ${x.kind} hint</b><div class="hint">${x.txt}</div></div>`}).join(""):`<div class="box">⏳ No hints yet. When your host releases a hint, they will read out a 4-digit code.</div>`)}
 r()}
 const m=location.hash.match(/^#g([1-5])(?:-h(\d+))?$/);
 if(m)player(+m[1],m[2]!=null?+m[2]:null);else view();
