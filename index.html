@@ -1,0 +1,93 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>Rotaract Treasure Hunt</title>
+<style>
+:root{--bg:#1b1330;--card:#2c2050;--ink:#fff7d6;--acc:#ffcc33;--ok:#4be38a;--pink:#ff5fa2;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.4 "Courier New",monospace;padding:12px;max-width:820px;margin:auto}
+h1{font-size:20px;color:var(--acc);text-shadow:3px 3px 0 var(--pink);margin:6px 0}
+.box{background:var(--card);border:4px solid var(--ink);box-shadow:5px 5px 0 #000;padding:10px;margin:10px 0}
+button,select,input{font:inherit;border:3px solid var(--ink);background:#000;color:var(--ink);padding:7px 10px;margin:3px 0}
+button{background:var(--acc);color:#000;font-weight:bold;cursor:pointer;box-shadow:3px 3px 0 #000}button.ok{background:var(--ok)}button.g{background:#888}
+.row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}.stg{display:inline-flex;gap:3px;border:2px solid var(--ink);padding:3px;margin:2px}
+.sq{width:18px;height:18px;border:2px solid var(--ink);background:#000}.sq.on{background:var(--ok)}
+.av{font-size:28px}.hint{font-size:17px;white-space:pre-wrap;background:#000;padding:12px;border:3px dashed var(--acc)}
+#qr svg{width:220px;height:220px;background:#fff;display:block;margin:8px auto}
+#grp{position:fixed;inset:0;background:var(--bg);padding:16px;overflow:auto;display:none;z-index:9}
+.pill{font-size:12px;color:#000;background:var(--pink);padding:1px 6px}
+.blur{filter:blur(9px);max-width:100%;border:3px solid var(--ink)}
+</style></head><body>
+<h1>👾 TREASURE HUNT: HOST CONSOLE</h1>
+<div class="box"><div class="row"><b>Group:</b><select id="sel"></select><button class="g" onclick="dash()">All progress</button><button class="g" onclick="allh()">All hints</button></div></div>
+<div id="main"></div>
+<div id="grp"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<script>
+// ===== EDIT YOUR HINTS HERE (h1 = location, h2 = event) =====
+const EV={
+CJ:{n:"Colours of Janmashtami",loc:"11th floor, B wing mirror room",
+ h1:"I have a hundred faces but none are mine.\nI never speak, yet I answer every glance.\nStand before me and I show you everything, except what is behind you.\nWhere do the walls here borrow your face?",
+
+ h2:"A peacock feather, a flute and a graceful pair,\nA splash of colours was everywhere.\nSome showcased their style, some showed their art,\nAnd a passing parcel played its part!\n\nWhat was the name of this colourful celebration?"},
+EC:{n:"Echo",loc:"Reading room, 5th floor (director hides here). PASSWORD: LANTERN",
+ h1:"You will hear: “the library!” Do not trust it.\nThe real keeper of silence sits in a room where people read but never borrow.\nSomeone from our organising committee is hiding there. Find them, collect the secret word, and tell it to your host to claim your next hint.",
+ h2:"I have no pages turning, yet stories travel.\nI have no classroom, yet I help people learn.\nMy purpose is to make knowledge accessible to those who cannot see.\n\nWhat is my name?"},
+OK:{n:"O Khau Express",loc:"Canteen",photo:1,
+ h1:"I have no classroom, yet everyone attends me daily.\nChai is my anthem and samosa is my sermon.\nI am loudest when lectures end and stomachs begin.\nWhere do students go to be fed instead of taught?",
+ h2:"I have no tracks, yet I’m an express on four wheels,\nBringing friends together for endless talks and heavy meals.\nWe hopped off at a famous junction on the 20th of December,\nWith idlis, golgappas, and memories to remember.\nFrom steaming filter coffee to street-side chatter and cheer,\nWhich event brought us all here?"},
+PR:{n:"Prom 2025",loc:"Vashi (outside campus)",
+ h1:"This one did not happen under our roof.\nOur story that night began in the city that never sleeps across the creek, in Vashi.\nSomewhere on campus a senior from the committee is dressed for a dance. Find them, ask for the “last slow song”, and they will point you to the clue.",
+ h2:"I arrive at dusk in borrowed shine,\nA crown of paper, a glass of wine (well, juice).\nThe clock chimes twelve, the lights go thin,\nYet no one wants the night to end.\nShoes are lost, and hearts are found,\nIn a room of whispers, glitter, sound.\n\nWhich night am I?"},
+BB:{n:"Beyond the Beat",loc:"Editorial director (anywhere on campus)",
+ h1:"Your next clue walks on two feet and hums a tune.\nSomeone from our team is somewhere on campus, wearing headphones around their neck. Track them down and ask them for the track that started it all.",
+ h2:"Not a Coldplay stadium, not an Arijit Singh sad hour,\nNot Taylor’s Eras, not The Weeknd’s late-night power.\nBut every Rotaractor handed us a song they love,\nAnd the lyric that stayed, like a note from above.\nFrom Bollywood to Billie, Ed to A.R. Rahman’s sound,\nThe playlist wasn’t about beats, but the feelings found.\n\nLook past the tempo: which editorial initiative is this?"}};
+const ROUTES=[["CJ","OK","PR","EC"],["OK","PR","EC","CJ"],["PR","EC","CJ","OK"],["EC","CJ","OK","PR"],["CJ","EC","PR","OK"]];
+const AV=["🧙","🥷","🤖","🦸","🧛","👾","🧝","🐲"];
+// ============================================================
+let S;try{S=JSON.parse(localStorage.getItem("hunt"))}catch(e){}
+S=S||{g:ROUTES.map((r,i)=>({host1:"",host2:"",mem:[],av:i,p:0,rel:false,t:[]}))};
+let PH=null,cur=0,LINK=true;
+const save=()=>{try{localStorage.setItem("hunt",JSON.stringify(S))}catch(e){}};
+const $=id=>document.getElementById(id);
+const order=i=>[...ROUTES[i],"BB"];
+const hint=(g,p)=>{const e=EV[order(g)[p>>1]];return{e,txt:(p%2?e.h2:e.h1),stage:(p>>1)+1,kind:p%2?"Event":"Location"}};
+$("sel").innerHTML=S.g.map((_,i)=>`<option value="${i}">Group ${i+1}</option>`).join("");
+$("sel").onchange=()=>{cur=+$("sel").value;view()};
+function view(){const g=S.g[cur];let h=`<div class="box"><b>Group ${cur+1}</b> <span class="av">${AV[g.av]}</span> <button class="g" onclick="av()">change avatar</button> <button onclick="joinqr()">📲 Join QR</button><div id="jq"></div>
+Hosts: <input id="h1" placeholder="Host 1" value="${g.host1}" size="10" oninput="S.g[cur].host1=this.value;save()"> <input id="h2" placeholder="Host 2" value="${g.host2}" size="10" oninput="S.g[cur].host2=this.value;save()"><br>
+Teammates: <input id="m" placeholder="Name" size="12"><button onclick="addm()">+ add</button><div>${g.mem.map((m,i)=>`<span class="pill" onclick="S.g[cur].mem.splice(${i},1);save();view()">${AV[(i+g.av)%8]} ${m} ✕</span> `).join("")}</div></div>`;
+h+=lif(g);if(g.el)h+="<div class='box'><h1>💀 ELIMINATED</h1>Both lifelines used up.</div>";else if(g.p>=10)h+=`<div class="box"><h1>🏆 FINISHED!</h1>${tl(g)}</div>`;
+else{const x=hint(cur,g.p);
+h+=`<div class="box"><b>Stage ${x.stage}/5: ${x.e.n}</b> <span class="pill">${x.kind} hint</span><br><small>Place: ${x.e.loc}</small><div class="hint">${x.txt}</div>
+${g.rel?`<label><input type="checkbox" ${LINK?"checked":""} onchange="LINK=this.checked;view()"> QR opens the group’s app (untick = plain text)</label><div id="qr"></div><div class="row"><button onclick="grp()">📱 Show group screen</button><button class="ok" onclick="clr()">✅ Hint solved</button></div>`
+:`<button onclick="rel()">🚀 Release this hint</button>`}
+${x.e.photo&&g.p%2?`<br><label>Blurred photo (pick the group pic): <input type="file" accept="image/*" onchange="pic(this)"></label>`:""}</div>`+`<div class="box">${tl(g)}</div>`}
+$("main").innerHTML=h;if(g.rel&&g.p<10)drawqr(LINK?base()+"#g"+(cur+1)+"-h"+g.p:hint(cur,g.p).txt)}
+function tl(g){return order(cur).map((k,i)=>{const a=g.p>i*2,b=g.p>i*2+1;return`<div class="stg"><div class="sq ${a?'on':''}"></div><div class="sq ${b?'on':''}"></div></div> ${b?"Stage "+(i+1)+" complete":(a?"Hint 1 done":"…")} · ${EV[k].n}<br>`}).join("")}
+function drawqr(t,id){id=id||"qr";try{qrcode.stringToBytes=qrcode.stringToBytesFuncs["UTF-8"];const q=qrcode(0,"L");q.addData(t);q.make();$(id).innerHTML=q.createSvgTag(4,2)}catch(e){$(id).textContent="QR library not loaded (needs internet once). Use the group screen instead."}}
+function addm(){const v=$("m").value.trim();if(v){S.g[cur].mem.push(v);save();view()}}
+function av(){S.g[cur].av=(S.g[cur].av+1)%8;save();view()}
+function rel(){S.g[cur].rel=true;save();view()}
+function clr(){const g=S.g[cur];g.t[g.p]=Date.now();g.p++;g.rel=false;save();view()}
+function pic(i){const f=i.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{PH=r.result;try{localStorage.setItem("hphoto",PH)}catch(e){}};r.readAsDataURL(f)}
+function grp(){const g=S.g[cur],x=hint(cur,g.p);if(!PH)try{PH=localStorage.getItem("hphoto")}catch(e){}
+$("grp").style.display="block";$("grp").innerHTML=`<h1>${AV[g.av]} GROUP ${cur+1} ${g.p>=2?"❤️".repeat(g.l??2)+"🖤".repeat(2-(g.l??2)):""}</h1><div>${g.mem.map((m,i)=>AV[(i+g.av)%8]+" "+m).join(" · ")}</div>
+<div class="box"><b>Stage ${x.stage}/5 · ${x.kind} hint</b>${x.e.photo&&g.p%2&&PH?`<br><img class="blur" src="${PH}">`:""}<div class="hint">${x.txt}</div></div><button onclick="$('grp').style.display='none'">⬅ Back to host</button>`}
+function dash(){let h="<div class='box'><b>LIVE PROGRESS</b><br><small>(open to refresh)</small></div>";S.g.forEach((g,i)=>{const x=g.p<10?hint(i,g.p):null;
+h+=`<div class="box"><b>Group ${i+1}</b> ${AV[g.av]} ${g.el?"💀 ELIMINATED":g.p>=2?"❤️".repeat(g.l??2)+"🖤".repeat(2-(g.l??2)):""} <small>${g.host1} ${g.host2?"& "+g.host2:""}</small><br>${Array.from({length:5},(_,k)=>`<div class="stg"><div class="sq ${g.p>k*2?'on':''}"></div><div class="sq ${g.p>k*2+1?'on':''}"></div></div>`).join("")}<br>${x?`Now: ${x.e.n}, ${x.kind} hint · ${g.rel?"🟢 hint released":"⏳ waiting for host"}`:"🏆 Finished at "+new Date(g.t[9]).toLocaleTimeString()}</div>`});
+h+=`<div class="box">🏁 Final-round finish order: ${S.g.map((g,i)=>[i+1,g.t[9]]).filter(a=>a[1]).sort((a,b)=>a[1]-b[1]).map(a=>"Group "+a[0]).join(" → ")||"none yet"}<br><button class="g" onclick="if(confirm('Reset everything?')){localStorage.clear();location.reload()}">Reset all</button></div>`;$("main").innerHTML=h}
+const base=()=>{let u="";try{u=localStorage.getItem("hurl")||""}catch(e){}return(u||location.href).split("#")[0]};
+function lif(g){const n=g.l??2;if(g.p<2&&!g.el)return"";return`<div class="box"><b>LIFELINES</b> ${g.el?"💀 ELIMINATED":"❤️".repeat(n)+"🖤".repeat(2-n)} <div class="row">${!g.el&&g.p<10?`<button onclick="ul()">Use lifeline</button>`:""}<button class="g" onclick="ud()">↩ undo</button></div></div>`}
+function ul(){if(!confirm("Use a lifeline for Group "+(cur+1)+"? Using both eliminates the group."))return;const g=S.g[cur];g.l=(g.l??2)-1;if(g.l<=0){g.l=0;g.el=true;g.rel=false}save();view()}
+function ud(){const g=S.g[cur];g.l=Math.min(2,(g.l??2)+1);g.el=false;save();view()}
+function setu(v){try{localStorage.setItem("hurl",v.trim())}catch(e){}joinqr()}
+function allh(){let h="<div class='box'><b>ALL HINTS</b></div>";Object.keys(EV).forEach(k=>{const e=EV[k];h+=`<div class="box"><b>${e.n}</b><br><small>Place: ${e.loc}</small><br><b>Hint 1</b><div class="hint">${e.h1}</div><b>Hint 2</b><div class="hint">${e.h2}</div></div>`});h+=`<div class="box"><b>Routes</b><br>${S.g.map((_,i)=>"Group "+(i+1)+": "+order(i).map(k=>EV[k].n).join(" → ")).join("<br>")}</div>`;$("main").innerHTML=h}
+function joinqr(){const u=base()+"#g"+(cur+1);$("jq").innerHTML='<div id="jqr"></div><small>Group '+(cur+1)+' link. Paste your SHARED app link here if scanning fails:</small><input style="width:100%" value="'+base()+'" onchange="setu(this.value)"><small>'+u+'</small>';drawqr(u,"jqr")}
+function player(g,h){document.querySelector(".box").style.display="none";document.querySelector("h1").textContent="👾 TEAM PROFILE";
+const k="pl"+g,gi=g-1;let P;try{P=JSON.parse(localStorage.getItem(k))}catch(e){}P=P||{mem:[],av:0,u:[]};
+const sv=()=>{try{localStorage.setItem(k,JSON.stringify(P))}catch(e){}};
+if(h!=null&&h<10&&!P.u.includes(h))P.u.push(h);sv();
+window.pa=()=>{P.av=(P.av+1)%8;sv();r()};window.pm=()=>{const v=$("pn").value.trim();if(v){P.mem.push(v);sv();r()}};window.pd=i=>{P.mem.splice(i,1);sv();r()};
+function r(){$("main").innerHTML=`<div class="box"><span class="av">${AV[P.av]}</span> <b>GROUP ${g}</b> <button class="g" onclick="pa()">change avatar</button><br>Teammates: <input id="pn" placeholder="Name" size="12"> <button onclick="pm()">+ add</button><div>${P.mem.map((m,i)=>`<span class="pill" onclick="pd(${i})">${AV[(i+P.av)%8]} ${m} ✕</span> `).join("")}</div></div>`+(P.u.length?Array.from({length:Math.max(...P.u)+1},(_,i)=>i).reverse().map(p=>{const x=hint(gi,p);return `<div class="box"><b>Stage ${x.stage}/5 · ${x.kind} hint</b><div class="hint">${x.txt}</div></div>`}).join(""):`<div class="box">⏳ Waiting for your host to release a hint. Scan the hint QR they show you.</div>`)}
+r()}
+const m=location.hash.match(/^#g([1-5])(?:-h(\d+))?$/);
+if(m)player(+m[1],m[2]!=null?+m[2]:null);else view();
+window.onhashchange=()=>location.reload();
+</script></body></html>
